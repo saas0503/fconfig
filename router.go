@@ -10,5 +10,8 @@ const (
 	DELETE MethodKey = "DELETE"
 )
 
+type Handler func(Ctx) error
+
 type Route struct {
+	Handlers []Handler
 }

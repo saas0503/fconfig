@@ -26,8 +26,11 @@ type Ctx interface {
 }
 
 type CtxImpl struct {
-	req *http.Request
-	res http.ResponseWriter
+	req          *http.Request
+	res          http.ResponseWriter
+	route        Route
+	indexHandler int
+	// indexRoute   int
 }
 
 // BaseURL implements Ctx.
@@ -71,6 +74,11 @@ func (ctx *CtxImpl) Locals(key interface{}, value interface{}) {
 
 // Next implements Ctx.
 func (ctx *CtxImpl) Next() error {
+	ctx.indexHandler++
+
+	if ctx.indexHandler < len(ctx.route.Handlers) {
+		return ctx.route.Handlers[ctx.indexHandler](ctx)
+	}
 	return nil
 }
 
