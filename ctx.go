@@ -31,23 +31,23 @@ type CtxImpl struct {
 }
 
 // BaseURL implements Ctx.
-func (ctx CtxImpl) BaseURL() string {
+func (ctx *CtxImpl) BaseURL() string {
 	return ctx.req.URL.Scheme + "://" + ctx.req.Host
 }
 
 // BodyParser implements Ctx.
-func (ctx CtxImpl) BodyParser(payload interface{}) error {
+func (ctx *CtxImpl) BodyParser(payload interface{}) error {
 	err := json.NewDecoder(ctx.req.Body).Decode(&payload)
 	return err
 }
 
 // Get implements Ctx.
-func (ctx CtxImpl) Get(key interface{}) interface{} {
+func (ctx *CtxImpl) Get(key interface{}) interface{} {
 	return ctx.req.Context().Value(key)
 }
 
 // IP implements Ctx.
-func (ctx CtxImpl) IP() string {
+func (ctx *CtxImpl) IP() string {
 	ipAddress := ctx.req.Header.Get("X-Forwarded-For")
 	if ipAddress == "" {
 		ipAddress = ctx.req.RemoteAddr
@@ -57,25 +57,25 @@ func (ctx CtxImpl) IP() string {
 }
 
 // JSON implements Ctx.
-func (ctx CtxImpl) JSON(data interface{}) error {
+func (ctx *CtxImpl) JSON(data interface{}) error {
 	ctx.res.Header().Set("Content-Type", "application/json")
 	err := json.NewEncoder(ctx.res).Encode(data)
 	return err
 }
 
 // Locals implements Ctx.
-func (ctx CtxImpl) Locals(key interface{}, value interface{}) {
+func (ctx *CtxImpl) Locals(key interface{}, value interface{}) {
 	contx := context.WithValue(ctx.req.Context(), key, value)
 	ctx.req = ctx.req.WithContext(contx)
 }
 
 // Next implements Ctx.
-func (ctx CtxImpl) Next() error {
+func (ctx *CtxImpl) Next() error {
 	return nil
 }
 
 // Params implements Ctx.
-func (ctx CtxImpl) Params(key string, defaultValue ...string) string {
+func (ctx *CtxImpl) Params(key string, defaultValue ...string) string {
 	para := ctx.req.PathValue(key)
 	if para == "" {
 		para = defaultValue[0]
@@ -85,7 +85,7 @@ func (ctx CtxImpl) Params(key string, defaultValue ...string) string {
 }
 
 // Queries implements Ctx.
-func (ctx CtxImpl) Queries() map[string]string {
+func (ctx *CtxImpl) Queries() map[string]string {
 	query := make(map[string]string)
 	q := ctx.req.URL.Query()
 	for k, v := range q {
@@ -105,7 +105,7 @@ func (ctx *CtxImpl) Query(key string, defaultValue ...string) string {
 }
 
 // QueryBool implements Ctx.
-func (ctx CtxImpl) QueryBool(key string, defaultValue ...bool) bool {
+func (ctx *CtxImpl) QueryBool(key string, defaultValue ...bool) bool {
 	q := ctx.req.URL.Query().Has(key)
 	if q {
 		query := ctx.req.URL.Query().Get(key)
@@ -119,7 +119,7 @@ func (ctx CtxImpl) QueryBool(key string, defaultValue ...bool) bool {
 }
 
 // QueryFloat implements Ctx.
-func (ctx CtxImpl) QueryFloat(key string, defaultValue ...float64) float64 {
+func (ctx *CtxImpl) QueryFloat(key string, defaultValue ...float64) float64 {
 	q := ctx.req.URL.Query().Has(key)
 	if q {
 		query := ctx.req.URL.Query().Get(key)
@@ -133,7 +133,7 @@ func (ctx CtxImpl) QueryFloat(key string, defaultValue ...float64) float64 {
 }
 
 // QueryInt implements Ctx.
-func (ctx CtxImpl) QueryInt(key string, defaultValue ...int64) int64 {
+func (ctx *CtxImpl) QueryInt(key string, defaultValue ...int64) int64 {
 	q := ctx.req.URL.Query().Has(key)
 	if q {
 		query := ctx.req.URL.Query().Get(key)
@@ -147,17 +147,17 @@ func (ctx CtxImpl) QueryInt(key string, defaultValue ...int64) int64 {
 }
 
 // Req implements Ctx.
-func (ctx CtxImpl) Req() *http.Request {
+func (ctx *CtxImpl) Req() *http.Request {
 	return ctx.req
 }
 
 // Res implements Ctx.
-func (ctx CtxImpl) Res() http.ResponseWriter {
+func (ctx *CtxImpl) Res() http.ResponseWriter {
 	return ctx.res
 }
 
 func NewCtx(w http.ResponseWriter, r *http.Request) Ctx {
-	return CtxImpl{
+	return &CtxImpl{
 		req: r,
 		res: w,
 	}
