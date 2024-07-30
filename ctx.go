@@ -11,10 +11,9 @@ import (
 type Ctx interface {
 	BaseURL() string
 	BodyParser(interface{}) error
-	Get(key interface{}) interface{}
 	IP() string
 	JSON(data interface{}) error
-	Locals(key interface{}, value interface{})
+	Locals(key interface{}, value ...interface{}) interface{}
 	Next() error
 	Params(key string, defaultValue ...string) string
 	Queries() map[string]string
@@ -23,14 +22,34 @@ type Ctx interface {
 	QueryInt(key string, defaultValue ...int64) int64
 	Req() *http.Request
 	Res() http.ResponseWriter
+	Reset(w http.ResponseWriter, r *http.Request)
+
+	release()
 }
 
 type CtxImpl struct {
+	app          *App
 	req          *http.Request
 	res          http.ResponseWriter
-	route        Route
+	route        *Route
 	indexHandler int
+	matched      bool
 	// indexRoute   int
+}
+
+// Reset is a method to reset context fields by given request when to use server handlers.
+func (ctx *CtxImpl) Reset(w http.ResponseWriter, r *http.Request) {
+	ctx.res = w
+	ctx.req = r
+	ctx.matched = false
+	ctx.indexHandler = 0
+}
+
+// Release is a method to reset context fields when to use ReleaseCtx()
+func (ctx *CtxImpl) release() {
+	ctx.req = nil
+	ctx.res = nil
+	ctx.route = nil
 }
 
 // BaseURL implements Ctx.
@@ -42,11 +61,6 @@ func (ctx *CtxImpl) BaseURL() string {
 func (ctx *CtxImpl) BodyParser(payload interface{}) error {
 	err := json.NewDecoder(ctx.req.Body).Decode(&payload)
 	return err
-}
-
-// Get implements Ctx.
-func (ctx *CtxImpl) Get(key interface{}) interface{} {
-	return ctx.req.Context().Value(key)
 }
 
 // IP implements Ctx.
@@ -67,9 +81,13 @@ func (ctx *CtxImpl) JSON(data interface{}) error {
 }
 
 // Locals implements Ctx.
-func (ctx *CtxImpl) Locals(key interface{}, value interface{}) {
-	contx := context.WithValue(ctx.req.Context(), key, value)
-	ctx.req = ctx.req.WithContext(contx)
+func (ctx *CtxImpl) Locals(key interface{}, value ...interface{}) interface{} {
+	if len(value) == 0 {
+		return ctx.req.Context().Value(key)
+	}
+	c := context.WithValue(ctx.req.Context(), key, value)
+	ctx.req = ctx.req.WithContext(c)
+	return value[0]
 }
 
 // Next implements Ctx.
@@ -77,6 +95,7 @@ func (ctx *CtxImpl) Next() error {
 	ctx.indexHandler++
 
 	if ctx.indexHandler < len(ctx.route.Handlers) {
+		// continue route stack
 		return ctx.route.Handlers[ctx.indexHandler](ctx)
 	}
 	return nil
@@ -164,9 +183,8 @@ func (ctx *CtxImpl) Res() http.ResponseWriter {
 	return ctx.res
 }
 
-func NewCtx(w http.ResponseWriter, r *http.Request) Ctx {
+func NewCtx(app *App) Ctx {
 	return &CtxImpl{
-		req: r,
-		res: w,
+		app: app,
 	}
 }
