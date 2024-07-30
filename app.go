@@ -6,7 +6,17 @@ import (
 )
 
 type App struct {
-	pool sync.Pool
+	pool          sync.Pool
+	handlersCount uint32
+	mutex         sync.RWMutex
+	stack         [][]*Route
+	hooks         *Hooks
+	mountFields   *mountFields
+
+	latestRoute *Route
+
+	routesCount     uint32
+	routesRefreshed bool
 }
 
 func New() *App {
